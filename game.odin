@@ -70,6 +70,7 @@ DestroyGame :: proc(self: ^Game)
 
    sdl2.DestroyRenderer(self.render);
    sdl2.DestroyWindow(self.window);
+   DestroyLevel(self.level);
    sdl2.Quit();
 }
 
@@ -117,4 +118,10 @@ renderLoop :: proc(data: rawptr)
       sync.mutex_unlock(&self.mutex);
       time.sleep(self.tick);
    }
+}
+
+
+ProcessAction :: proc(self: ^Game)
+{
+
 }

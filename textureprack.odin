@@ -8,6 +8,8 @@ import "vendor:sdl2"
 TexturePack :: struct {
    //effect sprites
    explossion,
+   death,
+   bang,
 
    //active pawn sprites
    player,
@@ -49,6 +51,8 @@ InitTexturePack :: proc(self: ^TexturePack, render: ^sdl2.Renderer, path: string
 {
    os.set_current_directory(path);
    self.explossion = LoadPNGTexture("explossion.png", render); 
+   self.death = LoadPNGTexture("death.png", render); 
+   self.bang = LoadPNGTexture("bang.png", render);
 
    self.player = LoadPNGTexture("player.png", render); 
    self.ranger = LoadPNGTexture("ranger.png", render); 

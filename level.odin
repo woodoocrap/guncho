@@ -96,27 +96,57 @@ SelectCell :: proc(self: ^Level, cell: ^Cell)
 }
 
 
-SelectRight :: proc(self: ^Level)
+
+trySelectDir :: proc(self: ^Level, ctrl: ^Controls) -> bool
 {
-   self.direction = Dir((int(self.direction) + 1) % 6);
-   if self.player.cell.nodes[self.direction] != nil {
-      SelectCell(self, self.player.cell.nodes[self.direction]);   
-      return;
+   if self.player.cell.nodes[self.direction] == nil do return false;
+      
+   if ctrl.selected_tool == .Shoot {
+      target_cell := FindTarget(self.player.cell, self.direction);
+      if target_cell != nil {
+         SelectCell(self, target_cell);
+         return true;
+      }
    }
 
-   SelectRight(self);
+   SelectCell(self, self.player.cell.nodes[self.direction]);   
+   return true;
 }
 
 
-SelectLeft :: proc(self: ^Level)
+Reselect :: proc(self: ^Level, ctrl: ^Controls) { trySelectDir(self, ctrl); }
+
+
+SelectRight :: proc(self: ^Level, ctrl: ^Controls)
 {
-   dir := (int(self.direction) - 1);
-   self.direction = dir >= 0 ? Dir(dir) : Dir(5);
+   self.direction = IncDir(self.direction)
+   if trySelectDir(self, ctrl) == true do return;
+   
+   SelectRight(self, ctrl);
+}
 
-   if self.player.cell.nodes[self.direction] != nil {
-      SelectCell(self, self.player.cell.nodes[self.direction]);   
-      return;
-   }
 
-   SelectLeft(self);
+SelectLeft :: proc(self: ^Level, ctrl: ^Controls)
+{
+   self.direction = DecDir(self.direction);
+   if trySelectDir(self, ctrl) == true do return;
+
+   SelectLeft(self, ctrl);
+}
+
+
+MovePlayer :: proc(self: ^Level)
+{
+   if self.selected_cell == nil do return;
+   if self.selected_cell.pawn != nil do return;
+
+   MovePawn(self.player, self.selected_cell);
+   deselectCell(self);
+}
+
+
+deselectCell :: proc(self: ^Level)
+{
+   self.selected_cell.selected = false;
+   self.selected_cell = nil;
 }

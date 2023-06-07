@@ -7,6 +7,7 @@ import "vendor:sdl2/image"
 
 Sprite :: struct {
    loop:    bool,
+   done:    bool,
    texture: ^sdl2.Texture,
    rect:    sdl2.Rect
    frames:  []i32,
@@ -53,7 +54,9 @@ nextFrame :: proc(self: ^Sprite)
 {
    //if last frame reached
    if self.frame == len(self.frames) - 1 {
-      if self.loop { self.rect.x, self.frame = 0, 0; }
+      if self.loop do self.rect.x, self.frame = 0, 0;
+      else do self.done = true;
+
       return;
    }
    

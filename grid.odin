@@ -8,6 +8,10 @@ import "vendor:sdl2/image"
 Grid :: struct {
    background: ^sdl2.Texture,
    texture:    ^sdl2.Texture,
+   
+   // since i need to scale it with rest of the grid i put it here
+   animations:   [dynamic]^Animation,
+
    cells:      [][]Cell,
    rect:       sdl2.Rect,
    rows:       i32,
@@ -130,6 +134,9 @@ DestroyGrid :: proc(self: ^Grid)
 {
    sdl2.DestroyTexture(self.background);
    sdl2.DestroyTexture(self.texture);
+
+   for animation in self.animations do DestroyAnimation(animation);
+   delete(self.animations);
    
    for row in self.cells {
       for cell in row {
@@ -152,6 +159,12 @@ RenderGrid :: proc(self: ^Grid, render: ^sdl2.Renderer)
          RenderCell(&self.cells[i][j], render);
       }
    }
+
+   for i in 0 ..< len(self.animations) {
+      RenderAnimation(self.animations[i], render);
+      if self.animations[i].sprite.done do unordered_remove(&self.animations, i);
+   }
+
    sdl2.SetRenderTarget(render, nil);
    sdl2.RenderCopy(render, self.texture, nil, &self.rect);
 }

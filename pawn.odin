@@ -14,6 +14,7 @@ Pawn :: struct {
    rect:   sdl2.Rect,
    type:   PawnType,
    cell:   ^Cell
+   stuned: bool
 };
 
 
@@ -49,6 +50,7 @@ CreatePawn :: proc(cell: ^Cell, type: PawnType) -> ^Pawn
 
 DestroyPawn :: proc(self: ^Pawn)
 {
+   if self.cell != nil do self.cell.pawn = nil;
    DestroySprite(self.sprite);
    free(self);
 }
@@ -61,7 +63,7 @@ RenderPawn :: proc(self: ^Pawn, render: ^sdl2.Renderer)
 
 
 //looks ugly, considering redesign
-MovePawn :: proc(self: ^Pawn, cell: ^Cell, dir: Dir)
+MovePawn :: proc(self: ^Pawn, cell: ^Cell)
 {
    self.cell.pawn = nil;
 

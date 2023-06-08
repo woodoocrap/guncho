@@ -25,12 +25,12 @@ Game :: struct {
    controls:      Controls,
    
    render_loop:  ^thread.Thread,
-   mutex:        sync.Mutex,
    run:          bool
 };
 
 
 textures: TexturePack
+mutex: sync.Mutex
 
 
 CreateGame :: proc(width, height: i32, tick: time.Duration) -> ^Game
@@ -103,7 +103,7 @@ renderLoop :: proc(data: rawptr)
    context.logger.procedure = logger_proc;
 
    for self.run {
-      sync.mutex_lock(&self.mutex);
+      sync.mutex_lock(&mutex);
 
       sdl2.RenderClear(self.render);
 
@@ -112,25 +112,33 @@ renderLoop :: proc(data: rawptr)
 
       sdl2.RenderPresent(self.render);
 
-      sync.mutex_unlock(&self.mutex);
+      sync.mutex_unlock(&mutex);
       time.sleep(self.tick);
    }
 }
 
 
-AddAnimation :: proc(self: ^Game, texture: ^sdl2.Texture, rect: sdl2.Rect)
+ProcessInput :: proc(self: ^Game, key: sdl2.Keycode)
 {
-   sync.mutex_lock(&self.mutex);
-   append(&self.level.grid.animations, CreateAnimation(texture, rect));
-   sync.mutex_unlock(&self.mutex);
-}
+   #partial switch key {
 
+      case .a: fallthrough; case .LEFT:
+         SelectLeft(self.level, &self.controls);
 
-doBang :: proc(self: ^Game, cell: ^Cell)
-{
-   rect := cell.rect;
-   rect.x -= PAWN_WIDTH / 2;
-   rect.y -= PAWN_OFFSET;
+      case .d: fallthrough; case .RIGHT:
+         SelectRight(self.level, &self.controls);
 
-   AddAnimation(self, textures.bang, rect);
+      case .s: fallthrough; case .DOWN: 
+         SwitchToolDown(&self.controls);
+         Reselect(self.level, &self.controls);
+
+      case .w: fallthrough; case .UP:
+         SwitchToolUp(&self.controls);
+         Reselect(self.level, &self.controls);
+
+      case .SPACE: fallthrough; case .RETURN: 
+         ProcessAction(self);
+         // enemy turn starts here
+         Reselect(self.level, &self.controls);
+   }
 }

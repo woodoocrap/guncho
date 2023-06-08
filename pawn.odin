@@ -13,8 +13,9 @@ Pawn :: struct {
    sprite: ^Sprite,
    rect:   sdl2.Rect,
    type:   PawnType,
-   cell:   ^Cell
-   stuned: bool
+   cell:   ^Cell,
+   stuned: bool,
+   timer:  i32,
 };
 
 

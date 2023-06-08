@@ -4,6 +4,7 @@ import "core:time"
 import "vendor:sdl2"
 
 
+// TODO: consider moving all of this logic to level methods
 ProcessAction :: proc(self: ^Game)
 {
    switch self.controls.selected_tool {
@@ -29,12 +30,12 @@ ProcessAction :: proc(self: ^Game)
             return;
          }
 
-         if !hasTarget(self, self.level.selected_cell) do return;
+         if !hasTarget(self.level.selected_cell) do return;
 
-         shotsFired(self, self.level.selected_cell);
+         shotsFired(self.level, self.level.selected_cell);
          Reselect(self.level, &self.controls);
          self.controls.drum.bullets[dir] = .Empty;
-         doBang(self, self.level.player.cell);
+         doBang(self.level, self.level.player.cell);
    
          time.sleep(self.tick * 3);
          if dir == .Left || dir == .UpperLeft || dir == .UpperRight {
@@ -44,10 +45,10 @@ ProcessAction :: proc(self: ^Game)
          }
 
       case .Punch: 
-         if !hasTarget(self, self.level.selected_cell) do return;
+         if !hasTarget(self.level.selected_cell) do return;
          self.level.selected_cell.pawn.stuned = true;
          self.controls.cooldowns[Tool.Punch] = 2;
-         pushPawn(self);
+         pushPawn(self.level);
 
       case .BulletHail:
          for dir in Dir {
@@ -55,8 +56,8 @@ ProcessAction :: proc(self: ^Game)
             self.controls.drum.bullets[dir] = .Empty;
             cell := FindTarget(self.level.player.cell, dir);
             if cell != nil { 
-               doBang(self, self.level.player.cell);
-               shotsFired(self, cell);
+               doBang(self.level, self.level.player.cell);
+               shotsFired(self.level, cell);
             }
             time.sleep(self.tick * 3);
          }
@@ -73,7 +74,7 @@ ProcessAction :: proc(self: ^Game)
 }
 
 
-hasTarget :: proc(self: ^Game, cell: ^Cell) -> bool 
+hasTarget :: proc(cell: ^Cell) -> bool 
 {
    if cell == nil do return false
    if cell.pawn == nil do return false;
@@ -83,7 +84,7 @@ hasTarget :: proc(self: ^Game, cell: ^Cell) -> bool
 
 
 //presumes target exists
-shotsFired :: proc(self: ^Game, cell: ^Cell)
+shotsFired :: proc(self: ^Level, cell: ^Cell)
 {  
    pawn := cell.pawn;
 
@@ -92,59 +93,39 @@ shotsFired :: proc(self: ^Game, cell: ^Cell)
       case .Axe: fallthrough; case .Bombot:
          DestroyPawn(pawn);
          AddAnimation(self, textures.death, cell.rect);
+         self.enemies -= 1;
       
-      case .Barrel: 
+      case .Barrel: fallthrough; case .Bomb:
          DestroyPawn(pawn);
          AddAnimation(self, textures.explossion, cell.rect);
-         for dir in Dir { 
-            if hasTarget(self, cell.nodes[dir]) {
-               shotsFired(self, cell.nodes[dir]);
-            }
-         }
+         blastRadius(self, cell);
 
       case .Player: 
          // play death effect
          // endgame
 
       case .Plant: return;
-      case .Bomb: return;
    }
 }
 
 
-pushPawn :: proc(self: ^Game)
+blastRadius :: proc(self: ^Level, cell: ^Cell)
 {
-   dir := self.level.direction;
-   cell := self.level.selected_cell;
+   for dir in Dir { 
+      if hasTarget(cell.nodes[dir]) {
+         shotsFired(self, cell.nodes[dir]);
+      }
+   }
+}
+
+
+pushPawn :: proc(self: ^Level)
+{
+   dir := self.direction;
+   cell := self.selected_cell;
 
    if cell.nodes[dir] == nil do return;
    if cell.nodes[dir].pawn != nil do return;;
 
-   MovePawn(self.level.selected_cell.pawn, cell.nodes[dir]);
-}
-
-
-ProcessInput :: proc(self: ^Game, key: sdl2.Keycode)
-{
-   #partial switch key {
-
-      case .a: fallthrough; case .LEFT:
-         SelectLeft(self.level, &self.controls);
-
-      case .d: fallthrough; case .RIGHT:
-         SelectRight(self.level, &self.controls);
-
-      case .s: fallthrough; case .DOWN: 
-         SwitchToolDown(&self.controls);
-         Reselect(self.level, &self.controls);
-
-      case .w: fallthrough; case .UP:
-         SwitchToolUp(&self.controls);
-         Reselect(self.level, &self.controls);
-
-      case .SPACE: fallthrough; case .RETURN: 
-         ProcessAction(self);
-         // enemy turn starts here
-         Reselect(self.level, &self.controls);
-   }
+   MovePawn(self.selected_cell.pawn, cell.nodes[dir]);
 }

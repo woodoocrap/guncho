@@ -1,13 +1,14 @@
 package main
 
 import "core:log"
+import "core:sync"
 import "vendor:sdl2"
 import "core:math/rand"
 
 Level :: struct {
    selected_cell: ^Cell,
    direction:     Dir,
-   enemies:       [dynamic]^Pawn,
+   enemies:       int,
    player:        ^Pawn,
    grid:          ^Grid,
    rows:          i32,
@@ -34,18 +35,15 @@ InitLevel :: proc(self: ^Level)
 {
    enemie_count := rand.int_max(4) + 4;
    static_count := rand.int_max(4) + 4;
-
-   self.player = CreatePawn(&self.grid.cells[self.rows-1][self.cols/2], .Player);
    
-   self.enemies = make([dynamic]^Pawn, enemie_count);
-   if self.enemies == nil do log.fatal("memory allocation failure");
+   self.player = CreatePawn(&self.grid.cells[self.rows-1][self.cols/2], .Player);
 
    for i in 0 ..< enemie_count {
       for true {
          x, y : i32 = genRandomCords(self.cols, self.rows-1);
          if self.grid.cells[y][x].pawn == nil {
             pawn_type := PawnType(rand.int_max(4));
-            append(&self.enemies, CreatePawn(&self.grid.cells[y][x], pawn_type));
+            CreatePawn(&self.grid.cells[y][x], pawn_type);
             break;
          } 
       }
@@ -61,6 +59,8 @@ InitLevel :: proc(self: ^Level)
          } 
       }
    }
+
+   self.enemies = enemie_count;
 }
 
 
@@ -82,8 +82,6 @@ genRandomCords :: proc(w, h: i32) -> (i32, i32)
 DestroyLevel :: proc(self: ^Level)
 {
    DestroyGrid(self.grid);
-   delete(self.enemies);
-   
    free(self);
 }
 
@@ -149,4 +147,22 @@ deselectCell :: proc(self: ^Level)
 {
    self.selected_cell.selected = false;
    self.selected_cell = nil;
+}
+
+
+AddAnimation :: proc(self: ^Level, texture: ^sdl2.Texture, rect: sdl2.Rect)
+{
+   sync.mutex_lock(&mutex);
+   append(&self.grid.animations, CreateAnimation(texture, rect));
+   sync.mutex_unlock(&mutex);
+}
+
+
+doBang :: proc(self: ^Level, cell: ^Cell)
+{
+   rect := cell.rect;
+   rect.x -= PAWN_WIDTH / 2;
+   rect.y -= PAWN_OFFSET;
+
+   AddAnimation(self, textures.bang, rect);
 }

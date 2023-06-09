@@ -122,3 +122,11 @@ RenderControls :: proc(self: ^Controls, render: ^sdl2.Renderer)
       sdl2.RenderCopy(render, bullet, nil, &self.drum.cords[i]);
    }
 }
+
+
+ResetControls ::proc(self: ^Controls)
+{
+   self.selected_tool = .Move;
+   for i in 0 ..< len(self.drum.bullets) do self.drum.bullets[i] = .Inactive;
+   for i in 0 ..< len(self.cooldowns) do self.cooldowns[i] = 0;
+}

@@ -56,7 +56,6 @@ nextFrame :: proc(self: ^Sprite)
    if self.frame == len(self.frames) - 1 {
       if self.loop do self.rect.x, self.frame = 0, 0;
       else do self.done = true;
-
       return;
    }
    

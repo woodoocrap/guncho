@@ -1,12 +1,10 @@
 package main
 
 import "core:log"
+import "core:sync"
 import "core:math"
 import "core:time"
 import "vendor:sdl2"
-
-
-// TODO: change grid to matrix representation only
 
 
 triggerBomb :: proc(self: ^Level, bomb: ^Pawn)
@@ -15,6 +13,7 @@ triggerBomb :: proc(self: ^Level, bomb: ^Pawn)
    DestroyPawn(bomb);
 
    AddAnimation(self, textures.explossion, cell.rect);
+   delete_key(&self.pawns, bomb);
    blastRadius(self, cell);
 }
 
@@ -22,17 +21,17 @@ triggerBomb :: proc(self: ^Level, bomb: ^Pawn)
 perfectDir :: proc(self: ^Level, x, y: i32) -> Dir
 {
    perfect_dir: Dir
-   if x > self.player_x {
-      if y > self.player_y do perfect_dir = .UpperLeft;
-      else if y < self.player_y do perfect_dir = .LowerLeft;
+   if x > self.player.cell.x {
+      if y > self.player.cell.y do perfect_dir = .UpperLeft;
+      else if y < self.player.cell.y do perfect_dir = .LowerLeft;
       else do perfect_dir = .Left;
-   } else if x < self.player_x {
-      if y > self.player_y do perfect_dir = .UpperRight;
-      else if y < self.player_y do perfect_dir = .LowerRight;
+   } else if x < self.player.cell.x {
+      if y > self.player.cell.y do perfect_dir = .UpperRight;
+      else if y < self.player.cell.y do perfect_dir = .LowerRight;
       else do perfect_dir = .Right;
    } else {
-      if y > self.player_y do perfect_dir = .UpperRight;
-      else if y < self.player_y do perfect_dir = .LowerRight;
+      if y > self.player.cell.y do perfect_dir = .UpperRight;
+      else if y < self.player.cell.y do perfect_dir = .LowerRight;
    }
 
    return perfect_dir;
@@ -65,9 +64,10 @@ MoveCloser :: proc(self: ^Level, x, y: i32)
 
 
 
-AxeTurn :: proc(self: ^Level, cell: ^Cell, x, y: i32)
+AxeTurn :: proc(self: ^Level, cell: ^Cell)
 {
-   if math.abs(x - self.player_x) > 1 || math.abs(y - self.player_y) > 1 {
+   x, y := cell.x, cell.y
+   if math.abs(x - self.player.cell.x) > 1 || math.abs(y - self.player.cell.y) > 1 {
       MoveCloser(self, x, y);
       return;
    }
@@ -85,14 +85,16 @@ AxeTurn :: proc(self: ^Level, cell: ^Cell, x, y: i32)
 }
 
 
-RangerTurn :: proc(self: ^Level, cell: ^Cell, x, y: i32)
+RangerTurn :: proc(self: ^Level, cell: ^Cell)
 {
+   x, y := cell.x, cell.y
    dir := perfectDir(self, x, y);
    target := FindTarget(self, cell, dir);
 
    if target != nil {
       if target.pawn != nil {
          if target.pawn.type == .Player {
+            doBang(self, cell);
             shotsFired(self, target);
             return;
          }
@@ -103,16 +105,42 @@ RangerTurn :: proc(self: ^Level, cell: ^Cell, x, y: i32)
 }
 
 
-PlaceBomb :: proc(cell: ^Cell)
+CowTurn :: proc(self: ^Level, cell: ^Cell)
 {
-   cell.pawn = CreatePawn(cell, .Bomb);
+   x, y := cell.x, cell.y
+   dir := perfectDir(self, x, y);
+   target := FindTarget(self, cell, dir);
+
+   if target != nil {
+      if target.pawn != nil {
+         if target.pawn.type == .Player {
+
+            AnimateCharge(cell.pawn, target);
+            shotsFired(self, target);
+            MovePawn(cell.pawn, target);
+
+            return;
+         }
+      }
+   }
+
+   MoveCloser(self, x, y);
+}
+
+
+PlaceBomb :: proc(self: ^Level, cell: ^Cell)
+{
+   bomb := CreatePawn(cell, .Bomb);
+   cell.pawn = bomb;
+   self.pawns[bomb] = true;
    cell.pawn.timer = 3;
 }
 
 
-BombotTurn :: proc(self: ^Level, cell: ^Cell, x, y: i32)
+BombotTurn :: proc(self: ^Level, cell: ^Cell)
 {
-   if math.abs(x - self.player_x) > 2 || math.abs(y - self.player_y) > 2 {
+   x, y := cell.x, cell.y
+   if math.abs(x - self.player.cell.x) > 2 || math.abs(y - self.player.cell.y) > 2 {
       MoveCloser(self, x, y);
       return;
    }
@@ -120,11 +148,11 @@ BombotTurn :: proc(self: ^Level, cell: ^Cell, x, y: i32)
    dir := perfectDir(self, x, y);
    
    if checkCell(node(self, cell, dir)) { 
-      PlaceBomb(node(self, cell, dir));
+      PlaceBomb(self, node(self, cell, dir));
    } else if checkCell(node(self, cell, IncDir(dir))) {
-      PlaceBomb(node(self, cell, IncDir(dir)));
+      PlaceBomb(self, node(self, cell, IncDir(dir)));
    } else if checkCell(node(self, cell, DecDir(dir))) { 
-      PlaceBomb(node(self, cell, DecDir(dir)));
+      PlaceBomb(self, node(self, cell, DecDir(dir)));
    }
 }
 
@@ -153,32 +181,32 @@ TickBomb :: proc(self: ^Level, bomb: ^Pawn)
    }
 
    bomb.timer -= 1;
-
-   if bomb.timer == 1 do bomb.sprite.texture = textures.bomb2;
-   else if bomb.timer == 0 do bomb.sprite.texture = textures.bomb3;
+   texture := bomb.timer == 2 ? textures.bomb1 : bomb.timer == 1 ? textures.bomb2 : textures.bomb3;
+   //swap sprite
+   sync.mutex_lock(&mutex);
+      DestroySprite(bomb.sprite);
+      bomb.sprite = CreateSprite(texture, PAWN_WIDTH, true);
+   sync.mutex_unlock(&mutex);
 }
 
 
 EnemyTurn :: proc(self: ^Level)
 {
    if self.enemies == 0 {
-      // well thats a W
+      DestroyPawn(self.player);
+      self.over = true;
       return;
    }
-   
-   for i in 0 ..< i32(len(self.grid.cells)) {
-      for j in 0 ..< i32(len(self.grid.cells[i])) {
-         
-         cell := &self.grid.cells[i][j];
-         if cell.pawn == nil do continue;
 
-         #partial switch cell.pawn.type {
-            //case .Bomb: TickBomb(self, cell.pawn);
-            //case .Axe: AxeTurn(self, cell, j, i);
-            //case .Bombot: BombotTurn(self, cell, j, i);
-            //case .Ranger: RangerTurn(self, cell, j, i);
-            // cow 
-         }
+   for pawn in self.pawns { 
+      cell := pawn.cell;
+      #partial switch cell.pawn.type {
+         case .Bomb: TickBomb(self, cell.pawn);
+         case .Axe: AxeTurn(self, cell);
+         case .Bombot: BombotTurn(self, cell);
+         case .Ranger: RangerTurn(self, cell);
+         case .Cow: CowTurn(self, cell);
       }
+      if self.over do return;
    }
 }

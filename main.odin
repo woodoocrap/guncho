@@ -14,9 +14,8 @@ main :: proc() {
    context.logger.procedure = logger_proc;
 
    width, height: i32 = 400, 350;
-   tick : time.Duration = 140000000;
    
-   game := CreateGame(width, height, tick);
+   game := CreateGame(width, height, GAME_TICK);
    defer DestroyGame(game);
 
    StartGame(game);

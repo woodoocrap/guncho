@@ -2,12 +2,14 @@ package main
 
 import "core:log"
 import "core:time"
+import "core:math"
 import "core:sync"
 import "core:thread"
 import "vendor:sdl2"
 
 
 //configs
+GAME_TICK :: 140000000;
 GRID_PADDING :: 30;
 BULLET_WIDTH :: 15;
 BULLET_PADDING :: 5;
@@ -139,7 +141,40 @@ ProcessInput :: proc(self: ^Game, key: sdl2.Keycode)
 
       case .SPACE: fallthrough; case .RETURN: 
          if !ProcessAction(self) do return;
+         if self.level.over do EndGame(self);
          EnemyTurn(self.level);
+         if self.level.over do EndGame(self);
          Reselect(self.level, &self.controls);
    }
+}
+
+
+AnimateCharge :: proc(pawn: ^Pawn, cell: ^Cell)
+{
+   a := math.abs(pawn.cell.x - cell.x);
+   b := math.abs(pawn.cell.y - cell.y);
+   
+   dist := (a > b ? a : b) * 2;
+
+   step_x := (cell.rect.x - pawn.cell.rect.x) / dist;
+   step_y := (cell.rect.y - pawn.cell.rect.y) / dist;
+
+   for i in 0 ..< dist {
+      pawn.rect.x += step_x;
+      pawn.rect.y += step_y;
+      time.sleep(GAME_TICK);
+   }
+}
+
+
+EndGame :: proc(self: ^Game)
+{  
+   time.sleep(self.tick * 4);
+   sync.mutex_lock(&mutex);
+   
+   ClearLevel(self.level);
+   ResetControls(&self.controls);
+   InitLevel(self.level);
+
+   sync.mutex_unlock(&mutex);
 }

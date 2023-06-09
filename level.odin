@@ -8,13 +8,14 @@ import "core:math/rand"
 Level :: struct {
    selected_cell: ^Cell,
    direction:     Dir,
-   enemies:       int,
+   // is there something like std::set?
+   pawns:         map[^Pawn]bool,
+   over:          bool,
    player:        ^Pawn,
    grid:          ^Grid,
+   enemies:       int,
    rows:          i32,
    cols:          i32,
-   player_x:      i32,
-   player_y:      i32,
 };
 
 
@@ -35,9 +36,7 @@ CreateLevel :: proc(render: ^sdl2.Renderer, rect: sdl2.Rect, rows, cols: i32) ->
 
 InitLevel :: proc(self: ^Level)
 {
-   self.player_x = self.rows - 1;
-   self.player_y = self.cols / 2;
-   self.player = CreatePawn(&self.grid.cells[self.player_y][self.player_x], .Player);
+   self.player = CreatePawn(&self.grid.cells[self.rows-1][self.cols/2], .Player);
 
    enemie_count := rand.int_max(4) + 4;
    static_count := rand.int_max(4) + 4;
@@ -47,7 +46,7 @@ InitLevel :: proc(self: ^Level)
          x, y : i32 = genRandomCords(self.cols, self.rows-1);
          if self.grid.cells[y][x].pawn == nil {
             pawn_type := PawnType(rand.int_max(4));
-            CreatePawn(&self.grid.cells[y][x], pawn_type);
+            self.pawns[CreatePawn(&self.grid.cells[y][x], pawn_type)] = true;
             break;
          } 
       }
@@ -58,13 +57,23 @@ InitLevel :: proc(self: ^Level)
          x, y : i32 = genRandomCords(self.cols, self.rows-1);
          if self.grid.cells[y][x].pawn == nil {
             pawn_type := PawnType(rand.int_max(2) + 5);
-            CreatePawn(&self.grid.cells[y][x], pawn_type);
+            self.pawns[CreatePawn(&self.grid.cells[y][x], pawn_type)] = true;
             break;
          } 
       }
    }
 
    self.enemies = enemie_count;
+}
+
+
+ClearLevel :: proc(self: ^Level)
+{
+   self.over = false;
+   for pawn in self.pawns { 
+      delete_key(&self.pawns, pawn);
+      DestroyPawn(pawn);
+   }
 }
 
 
@@ -86,6 +95,7 @@ genRandomCords :: proc(w, h: i32) -> (i32, i32)
 DestroyLevel :: proc(self: ^Level)
 {
    DestroyGrid(self.grid);
+   delete(self.pawns);
    free(self);
 }
 
@@ -144,22 +154,8 @@ MovePlayer :: proc(self: ^Level) -> bool
    
    MovePawn(self.player, self.selected_cell);
    deselectCell(self);
-   UpdateCords(self);
 
    return true;
-}
-
-
-UpdateCords :: proc(self: ^Level)
-{
-   switch self.direction {
-      case .LowerLeft: self.player_y += 1; self.player_x -= 1;
-      case .LowerRight: self.player_y += 1; self.player_x += 1;
-      case .UpperLeft: self.player_y -= 1; self.player_x -= 1;
-      case .UpperRight: self.player_y -= 1; self.player_x += 1;
-      case .Right: self.player_x += 1;
-      case .Left: self.player_x -= 1;
-   }
 }
 
 

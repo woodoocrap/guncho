@@ -4,7 +4,6 @@ import "core:time"
 import "vendor:sdl2"
 
 
-// TODO: consider moving all of this logic to level methods
 ProcessAction :: proc(self: ^Game) -> bool
 {
    switch self.controls.selected_tool {
@@ -18,6 +17,8 @@ ProcessAction :: proc(self: ^Game) -> bool
          if self.controls.sprinting { 
             self.controls.cooldowns[Tool.Sprint] = 2;
             self.controls.selected_tool = .Move;
+         } else {
+            Reselect(self.level, &self.controls);
          }
 
          self.controls.sprinting = !self.controls.sprinting;
@@ -50,6 +51,7 @@ ProcessAction :: proc(self: ^Game) -> bool
          if !hasTarget(self.level.selected_cell) do return false;
          self.level.selected_cell.pawn.stuned = true;
          self.controls.cooldowns[Tool.Punch] = 2;
+         self.controls.selected_tool = .Move;
          pushPawn(self.level);
 
       case .BulletHail:
@@ -70,6 +72,7 @@ ProcessAction :: proc(self: ^Game) -> bool
          }
 
          self.controls.cooldowns[Tool.BulletHail] = 4;
+         self.controls.selected_tool = .Move;
 
       case .Wait:
    }
@@ -93,22 +96,26 @@ shotsFired :: proc(self: ^Level, cell: ^Cell)
    pawn := cell.pawn;
 
    switch pawn.type {
+      
       case .Ranger: fallthrough; case .Cow: fallthrough
       case .Axe: fallthrough; case .Bombot:
          DestroyPawn(pawn);
+         delete_key(&self.pawns, pawn);
          AddAnimation(self, textures.death, cell.rect);
          self.enemies -= 1;
       
       case .Barrel: fallthrough; case .Bomb:
          DestroyPawn(pawn);
+         delete_key(&self.pawns, pawn);
          AddAnimation(self, textures.explossion, cell.rect);
          blastRadius(self, cell);
 
       case .Player: 
-         // play death effect
-         // endgame
+         AddAnimation(self, textures.death, cell.rect);
+         DestroyPawn(pawn);
+         self.over = true;
 
-      case .Plant: return;
+      case .Plant:
    }
 }
 

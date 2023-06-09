@@ -15,6 +15,7 @@ GRID_OFFSET :: 15;
 PAWN_OFFSET :: 18;
 PAWN_WIDTH :: 64;
 
+// TODO: move grid representation to matrix
 
 Game :: struct {
    tick:         time.Duration,
@@ -137,8 +138,8 @@ ProcessInput :: proc(self: ^Game, key: sdl2.Keycode)
          Reselect(self.level, &self.controls);
 
       case .SPACE: fallthrough; case .RETURN: 
-         ProcessAction(self);
-         // enemy turn starts here
+         if !ProcessAction(self) do return;
+         EnemyTurn(self.level);
          Reselect(self.level, &self.controls);
    }
 }

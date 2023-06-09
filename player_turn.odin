@@ -5,21 +5,23 @@ import "vendor:sdl2"
 
 
 // TODO: consider moving all of this logic to level methods
-ProcessAction :: proc(self: ^Game)
+ProcessAction :: proc(self: ^Game) -> bool
 {
    switch self.controls.selected_tool {
       
-      case .Move: MovePlayer(self.level);
+      case .Move: return MovePlayer(self.level);
 
       case .Sprint: 
          
+         if !MovePlayer(self.level) do return false;
+
          if self.controls.sprinting { 
             self.controls.cooldowns[Tool.Sprint] = 2;
             self.controls.selected_tool = .Move;
          }
 
          self.controls.sprinting = !self.controls.sprinting;
-         MovePlayer(self.level);
+         return !self.controls.sprinting;
 
       case .Shoot:
          
@@ -27,10 +29,10 @@ ProcessAction :: proc(self: ^Game)
          // reload
          if self.controls.drum.bullets[dir] == .Empty {
             self.controls.drum.bullets[dir] = .Inactive;
-            return;
+            return true;
          }
 
-         if !hasTarget(self.level.selected_cell) do return;
+         if !hasTarget(self.level.selected_cell) do return false;
 
          shotsFired(self.level, self.level.selected_cell);
          Reselect(self.level, &self.controls);
@@ -45,7 +47,7 @@ ProcessAction :: proc(self: ^Game)
          }
 
       case .Punch: 
-         if !hasTarget(self.level.selected_cell) do return;
+         if !hasTarget(self.level.selected_cell) do return false;
          self.level.selected_cell.pawn.stuned = true;
          self.controls.cooldowns[Tool.Punch] = 2;
          pushPawn(self.level);
@@ -71,6 +73,8 @@ ProcessAction :: proc(self: ^Game)
 
       case .Wait:
    }
+
+   return true;
 }
 
 

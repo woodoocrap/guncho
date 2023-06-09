@@ -13,6 +13,8 @@ Level :: struct {
    grid:          ^Grid,
    rows:          i32,
    cols:          i32,
+   player_x:      i32,
+   player_y:      i32,
 };
 
 
@@ -33,10 +35,12 @@ CreateLevel :: proc(render: ^sdl2.Renderer, rect: sdl2.Rect, rows, cols: i32) ->
 
 InitLevel :: proc(self: ^Level)
 {
+   self.player_x = self.rows - 1;
+   self.player_y = self.cols / 2;
+   self.player = CreatePawn(&self.grid.cells[self.player_y][self.player_x], .Player);
+
    enemie_count := rand.int_max(4) + 4;
    static_count := rand.int_max(4) + 4;
-   
-   self.player = CreatePawn(&self.grid.cells[self.rows-1][self.cols/2], .Player);
 
    for i in 0 ..< enemie_count {
       for true {
@@ -133,13 +137,29 @@ SelectLeft :: proc(self: ^Level, ctrl: ^Controls)
 }
 
 
-MovePlayer :: proc(self: ^Level)
+MovePlayer :: proc(self: ^Level) -> bool
 {
-   if self.selected_cell == nil do return;
-   if self.selected_cell.pawn != nil do return;
-
+   if self.selected_cell == nil do return false;
+   if self.selected_cell.pawn != nil do return false;
+   
    MovePawn(self.player, self.selected_cell);
    deselectCell(self);
+   UpdateCords(self);
+
+   return true;
+}
+
+
+UpdateCords :: proc(self: ^Level)
+{
+   switch self.direction {
+      case .LowerLeft: self.player_y += 1; self.player_x -= 1;
+      case .LowerRight: self.player_y += 1; self.player_x += 1;
+      case .UpperLeft: self.player_y -= 1; self.player_x -= 1;
+      case .UpperRight: self.player_y -= 1; self.player_x += 1;
+      case .Right: self.player_x += 1;
+      case .Left: self.player_x -= 1;
+   }
 }
 
 

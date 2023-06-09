@@ -30,7 +30,6 @@ CreateGrid :: proc(render: ^sdl2.Renderer, rect: sdl2.Rect, rows, cols: i32) -> 
    self.rect = rect;
    allocCells(self);
    initCells(self, render);
-   bindCells(self);
 
    return self;
 }
@@ -44,50 +43,6 @@ allocCells :: proc (self: ^Grid)
    for i in 0 ..< self.rows {
       self.cells[i] = make([]Cell, self.cols);
       if self.cells[i] == nil do log.fatal("memory allocation failure");
-   }
-}
-
-/*
-   0 - 0 - 0
-  / \ / \ /
- 0 - 0 - 0     // grid is connected in the following way
-  \ / \ / \  
-   0 - 0 - 0
-*/
-// i could rely on matrix representation only but using indexes to navigate between neighboring
-// hexagonal cells is going to melt down last of my brain cells and i probably gonna need those
-// tldr KISS was chosen over memory eficiency
-
-bindCells :: proc(self: ^Grid)
-{
-   last_col := self.cols - 1;
-   last_row := self.rows - 1;
-
-   //bind last row horizontally
-   for i in 1 ..< self.cols do BindCell(&self.cells[last_row][i-1], &self.cells[last_row][i], .Right);
-
-   for i in 0 ..< self.rows - 1 {
-   
-      if i & 1 > 0 {
-         BindCell(&self.cells[i][0], &self.cells[i+1][0], .LowerRight);
-         BindCell(&self.cells[i][0], &self.cells[i][1], .Right);
-
-         for j in 1 ..< self.cols {
-            BindCell(&self.cells[i][j], &self.cells[i+1][j-1], .LowerLeft);
-            BindCell(&self.cells[i][j], &self.cells[i+1][j], .LowerRight);
-            BindCell(&self.cells[i][j-1], &self.cells[i][j], .Right);
-         }
-
-      } else {
-         BindCell(&self.cells[i][last_col], &self.cells[i+1][last_col], .LowerLeft);
-         BindCell(&self.cells[i][last_col-1], &self.cells[i][last_col], .Right);
-
-         for j in 0 ..< self.cols - 1 {
-            BindCell(&self.cells[i][j], &self.cells[i+1][j], .LowerLeft);
-            BindCell(&self.cells[i][j], &self.cells[i+1][j+1], .LowerRight);
-            BindCell(&self.cells[i][j], &self.cells[i][j+1], .Right);
-         }
-      }
    }
 }
 
@@ -119,8 +74,7 @@ initCells :: proc(self: ^Grid, render: ^sdl2.Renderer)
       for j in 0 ..< self.cols {
          //pre-render cells since they dont change so i dont have to draw each every tick
          sdl2.RenderCopy(render, textures.cell, nil, &dest_rect);
-
-         InitCell(&self.cells[i][j], dest_rect);
+         InitCell(&self.cells[i][j], dest_rect, j, i);
          dest_rect.x += cell_w;
       }
       dest_rect.y += v_step;
@@ -168,4 +122,3 @@ RenderGrid :: proc(self: ^Grid, render: ^sdl2.Renderer)
    sdl2.SetRenderTarget(render, nil);
    sdl2.RenderCopy(render, self.texture, nil, &self.rect);
 }
-

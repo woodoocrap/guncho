@@ -5,7 +5,8 @@ import "vendor:sdl2"
 Dir :: enum { Left, UpperLeft, UpperRight, Right, LowerRight, LowerLeft };
 
 Cell :: struct {
-   nodes:    [6]^Cell,
+   x:        i32
+   y:        i32
    rect:     sdl2.Rect,
    pawn:     ^Pawn,
 
@@ -14,17 +15,11 @@ Cell :: struct {
 };
 
 
-InitCell :: proc(self: ^Cell, rect: sdl2.Rect)
+InitCell :: proc(self: ^Cell, rect: sdl2.Rect, x, y: i32)
 {
    self.rect = rect;
-}
-
-
-BindCell :: proc(self, neighbour: ^Cell, dir: Dir)
-{
-   opposite := Dir((int(dir) + 3) % 6);
-   neighbour.nodes[opposite] = self;
-   self.nodes[dir] = neighbour;
+   self.x = x;
+   self.y = y;
 }
 
 
@@ -35,9 +30,9 @@ RenderCell :: proc(self: ^Cell, render: ^sdl2.Renderer)
 }
 
 
-FindTarget :: proc(self: ^Cell, dir: Dir) -> ^Cell
+FindTarget :: proc(self: ^Level, cell: ^Cell, dir: Dir) -> ^Cell
 {
-   cell := self.nodes[dir];
+   cell := node(self, cell, dir);
 
    for cell != nil {
       
@@ -45,10 +40,60 @@ FindTarget :: proc(self: ^Cell, dir: Dir) -> ^Cell
          if cell.pawn.type != .Bomb do break;
       }
 
-      cell = cell.nodes[dir];
+      cell = node(self, cell, dir);
    }
 
    return cell;
+}
+
+
+// spaghet to determine neighbors in matrix representation
+
+/*
+   0 - 0 - 0
+  / \ / \ /
+ 0 - 0 - 0     
+  \ / \ / \  
+   0 - 0 - 0
+*/
+
+node :: proc(self: ^Level, cell: ^Cell, dir: Dir) -> ^Cell
+{
+   a, b: i32;
+   if cell.y & 1 != 0 do a, b = 0, -1;
+   else do a, b = 1, 0;
+
+   switch dir {
+      case .UpperLeft:
+         if cell.y == 0 do return nil;
+         if cell.x == 0 && b != 0 do return nil;
+         return &self.grid.cells[cell.y-1][cell.x+b];
+
+      case .UpperRight:
+         if cell.y == 0 do return nil;
+         if cell.x == self.cols-1 && a == 1 do return nil;
+         return &self.grid.cells[cell.y-1][cell.x+a];
+
+      case .LowerLeft:
+         if cell.y == self.rows-1 do return nil;
+         if cell.x == 0 && b != 0 do return nil;
+         return &self.grid.cells[cell.y+1][cell.x+b];
+
+      case .LowerRight:
+         if cell.y == self.rows-1 do return nil;
+         if cell.x == self.cols-1 && a == 1 do return nil;
+         return &self.grid.cells[cell.y+1][cell.x+a];
+
+      case .Left:
+         if cell.x == 0 do return nil;
+         return &self.grid.cells[cell.y][cell.x-1];
+
+      case .Right:
+         if cell.x == self.cols-1 do return nil;
+         return &self.grid.cells[cell.y][cell.x+1];
+   }
+
+   return nil;
 }
 
 

@@ -101,17 +101,17 @@ SelectCell :: proc(self: ^Level, cell: ^Cell)
 
 trySelectDir :: proc(self: ^Level, ctrl: ^Controls) -> bool
 {
-   if self.player.cell.nodes[self.direction] == nil do return false;
+   if node(self, self.player.cell, self.direction) == nil do return false;
       
    if ctrl.selected_tool == .Shoot {
-      target_cell := FindTarget(self.player.cell, self.direction);
+      target_cell := FindTarget(self, self.player.cell, self.direction);
       if target_cell != nil {
          SelectCell(self, target_cell);
          return true;
       }
    }
 
-   SelectCell(self, self.player.cell.nodes[self.direction]);   
+   SelectCell(self, node(self, self.player.cell, self.direction));   
    return true;
 }
 

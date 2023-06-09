@@ -46,19 +46,19 @@ MoveCloser :: proc(self: ^Level, x, y: i32)
 
    // match desires with capabilities
    // best case
-   if tryMove(cell.pawn, cell.nodes[perfect_dir]) do return;
+   if tryMove(cell.pawn, node(self, cell, perfect_dir)) do return;
    
    // meh cases
    for i in 1 ..< 3 {
       dir := Dir((int(perfect_dir) + i) % 6);
-      if tryMove(cell.pawn, cell.nodes[dir]) do return;
+      if tryMove(cell.pawn, node(self, cell, dir)) do return;
       dir = Dir((int(perfect_dir) + 6 - i) % 6);
-      if tryMove(cell.pawn, cell.nodes[dir]) do return;
+      if tryMove(cell.pawn, node(self, cell, dir)) do return;
    } 
 
    //worst case
    dir := Dir((i32(perfect_dir) + 3) % 6);
-   tryMove(cell.pawn, cell.nodes[dir]);
+   tryMove(cell.pawn, node(self, cell, dir));
 
    return;
 }
@@ -73,11 +73,14 @@ AxeTurn :: proc(self: ^Level, cell: ^Cell, x, y: i32)
    }
 
    for dir in Dir {
-      if cell.nodes[dir] == nil do continue;
-      if cell.nodes[dir].pawn == nil do continue;
-      if cell.nodes[dir].pawn.type != .Player do continue;
       
-      shotsFired(self, cell.nodes[dir]);
+      c := node(self, cell, dir);
+
+      if c == nil do continue;
+      if c.pawn == nil do continue;
+      if c.pawn.type != .Player do continue;
+      
+      shotsFired(self, c);
    }
 }
 
@@ -85,7 +88,7 @@ AxeTurn :: proc(self: ^Level, cell: ^Cell, x, y: i32)
 RangerTurn :: proc(self: ^Level, cell: ^Cell, x, y: i32)
 {
    dir := perfectDir(self, x, y);
-   target := FindTarget(cell, dir);
+   target := FindTarget(self, cell, dir);
 
    if target != nil {
       if target.pawn != nil {
@@ -116,12 +119,12 @@ BombotTurn :: proc(self: ^Level, cell: ^Cell, x, y: i32)
    
    dir := perfectDir(self, x, y);
    
-   if checkCell(cell.nodes[dir]) { 
-      PlaceBomb(cell.nodes[dir]);
-   } else if checkCell(cell.nodes[IncDir(dir)]) {
-      PlaceBomb(cell.nodes[IncDir(dir)]);
-   } else if checkCell(cell.nodes[DecDir(dir)]) { 
-      PlaceBomb(cell.nodes[DecDir(dir)]);
+   if checkCell(node(self, cell, dir)) { 
+      PlaceBomb(node(self, cell, dir));
+   } else if checkCell(node(self, cell, IncDir(dir))) {
+      PlaceBomb(node(self, cell, IncDir(dir)));
+   } else if checkCell(node(self, cell, DecDir(dir))) { 
+      PlaceBomb(node(self, cell, DecDir(dir)));
    }
 }
 
@@ -171,7 +174,7 @@ EnemyTurn :: proc(self: ^Level)
 
          #partial switch cell.pawn.type {
             //case .Bomb: TickBomb(self, cell.pawn);
-            case .Axe: AxeTurn(self, cell, j, i);
+            //case .Axe: AxeTurn(self, cell, j, i);
             //case .Bombot: BombotTurn(self, cell, j, i);
             //case .Ranger: RangerTurn(self, cell, j, i);
             // cow 

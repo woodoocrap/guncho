@@ -56,7 +56,7 @@ ProcessAction :: proc(self: ^Game) -> bool
          for dir in Dir {
             if self.controls.drum.bullets[dir] == .Empty do continue;
             self.controls.drum.bullets[dir] = .Empty;
-            cell := FindTarget(self.level.player.cell, dir);
+            cell := FindTarget(self.level, self.level.player.cell, dir);
             if cell != nil { 
                doBang(self.level, self.level.player.cell);
                shotsFired(self.level, cell);
@@ -116,8 +116,8 @@ shotsFired :: proc(self: ^Level, cell: ^Cell)
 blastRadius :: proc(self: ^Level, cell: ^Cell)
 {
    for dir in Dir { 
-      if hasTarget(cell.nodes[dir]) {
-         shotsFired(self, cell.nodes[dir]);
+      if hasTarget(node(self, cell, dir)) {
+         shotsFired(self, node(self, cell, dir));
       }
    }
 }
@@ -128,8 +128,8 @@ pushPawn :: proc(self: ^Level)
    dir := self.direction;
    cell := self.selected_cell;
 
-   if cell.nodes[dir] == nil do return;
-   if cell.nodes[dir].pawn != nil do return;;
+   if node(self, cell, dir) == nil do return;
+   if node(self, cell, dir).pawn != nil do return;;
 
-   MovePawn(self.selected_cell.pawn, cell.nodes[dir]);
+   MovePawn(self.selected_cell.pawn, node(self, cell, dir));
 }

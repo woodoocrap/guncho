@@ -9,7 +9,7 @@ import "vendor:sdl2"
 
 
 //configs
-GAME_TICK :: 140000000;
+GAME_TICK :: 120000000;
 GRID_PADDING :: 30;
 BULLET_WIDTH :: 15;
 BULLET_PADDING :: 5;
@@ -140,10 +140,13 @@ ProcessInput :: proc(self: ^Game, key: sdl2.Keycode)
          Reselect(self.level, &self.controls);
 
       case .SPACE: fallthrough; case .RETURN: 
+
          if !ProcessAction(self) do return;
-         if self.level.over do EndGame(self);
+         if self.level.over { EndGame(self); return; } 
          EnemyTurn(self.level);
-         if self.level.over do EndGame(self);
+         if self.level.over { EndGame(self); return; }
+
+         Cooldown(&self.controls);
          Reselect(self.level, &self.controls);
    }
 }

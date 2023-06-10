@@ -7,17 +7,6 @@ import "core:time"
 import "vendor:sdl2"
 
 
-triggerBomb :: proc(self: ^Level, bomb: ^Pawn)
-{
-   cell := bomb.cell;
-   DestroyPawn(bomb);
-
-   AddAnimation(self, textures.explossion, cell.rect);
-   delete_key(&self.pawns, bomb);
-   blastRadius(self, cell);
-}
-
-
 perfectDir :: proc(self: ^Level, x, y: i32) -> Dir
 {
    perfect_dir: Dir
@@ -176,7 +165,7 @@ tryMove :: proc(pawn: ^Pawn, cell: ^Cell) -> bool
 TickBomb :: proc(self: ^Level, bomb: ^Pawn)
 {
    if bomb.timer == 0 {
-      triggerBomb(self, bomb);
+      shotsFired(self, bomb.cell);
       return;
    }
 
@@ -192,14 +181,14 @@ TickBomb :: proc(self: ^Level, bomb: ^Pawn)
 
 EnemyTurn :: proc(self: ^Level)
 {
-   if self.enemies == 0 {
-      DestroyPawn(self.player);
-      self.over = true;
-      return;
-   }
-
    for pawn in self.pawns { 
       cell := pawn.cell;
+      
+      if pawn.stuned && pawn.type != .Bomb {
+         pawn.stuned = false;
+         continue;
+      }
+
       #partial switch cell.pawn.type {
          case .Bomb: TickBomb(self, cell.pawn);
          case .Axe: AxeTurn(self, cell);

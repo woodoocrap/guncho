@@ -102,7 +102,12 @@ shotsFired :: proc(self: ^Level, cell: ^Cell)
          DestroyPawn(pawn);
          delete_key(&self.pawns, pawn);
          AddAnimation(self, textures.death, cell.rect);
+
          self.enemies -= 1;
+         if self.enemies == 0 {
+            DestroyPawn(self.player);
+            self.over = true;
+         }
       
       case .Barrel: fallthrough; case .Bomb:
          DestroyPawn(pawn);

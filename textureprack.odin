@@ -10,6 +10,8 @@ TexturePack :: struct {
    explossion,
    death,
    bang,
+   w,
+   l,
 
    //active pawn sprites
    player,
@@ -53,6 +55,8 @@ InitTexturePack :: proc(self: ^TexturePack, render: ^sdl2.Renderer, path: string
    self.explossion = LoadPNGTexture("explossion.png", render); 
    self.death = LoadPNGTexture("death.png", render); 
    self.bang = LoadPNGTexture("bang.png", render);
+   self.w = LoadPNGTexture("w.png", render);
+   self.l = LoadPNGTexture("l.png", render);
 
    self.player = LoadPNGTexture("player.png", render); 
    self.ranger = LoadPNGTexture("ranger.png", render); 

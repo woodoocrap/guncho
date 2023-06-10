@@ -10,12 +10,12 @@ Animation :: struct {
 };
 
 
-CreateAnimation :: proc(texture: ^sdl2.Texture, rect: sdl2.Rect) -> ^Animation
+CreateAnimation :: proc(texture: ^sdl2.Texture, rect: sdl2.Rect, sprite_w:i32 = PAWN_WIDTH) -> ^Animation
 {
    self := new(Animation);
    if self == nil do log.fatal("memory allocation failure");
 
-   self.sprite = CreateSprite(texture, PAWN_WIDTH, false);
+   self.sprite = CreateSprite(texture, sprite_w, false);
    self.rect = rect;
 
    return self;

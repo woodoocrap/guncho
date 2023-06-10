@@ -16,6 +16,8 @@ BULLET_PADDING :: 5;
 GRID_OFFSET :: 15;
 PAWN_OFFSET :: 18;
 PAWN_WIDTH :: 64;
+GAME_WIDTH :: 400;
+GAME_HEIGHT :: 350;
 
 // TODO: move grid representation to matrix
 

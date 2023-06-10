@@ -114,9 +114,17 @@ RenderGrid :: proc(self: ^Grid, render: ^sdl2.Renderer)
       }
    }
 
-   for i in 0 ..< len(self.animations) {
+   i := 0
+   for i < len(self.animations) {
+
       RenderAnimation(self.animations[i], render);
-      if self.animations[i].sprite.done do unordered_remove(&self.animations, i);
+
+      if self.animations[i].sprite.done {
+         unordered_remove(&self.animations, i);
+         continue;
+      }
+
+      i+=1;
    }
 
    sdl2.SetRenderTarget(render, nil);

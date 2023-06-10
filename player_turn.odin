@@ -105,8 +105,10 @@ shotsFired :: proc(self: ^Level, cell: ^Cell)
          AddAnimation(self, textures.death, cell.rect);
 
          self.enemies -= 1;
-         if self.enemies == 0 do prepExit(self);
-         // TODO: add victory animation
+         if self.enemies == 0 {
+            if !self.over do endGameAnimation(self, true);
+            prepExit(self);
+         }
       
       case .Barrel: fallthrough; case .Bomb:
          delete_key(&self.pawns, pawn);
@@ -116,7 +118,7 @@ shotsFired :: proc(self: ^Level, cell: ^Cell)
 
       case .Player: 
          AddAnimation(self, textures.death, cell.rect);
-         // TODO: add loss animation
+         if !self.over do endGameAnimation(self, false);
          prepExit(self);
 
       case .Plant:
@@ -152,4 +154,14 @@ pushPawn :: proc(self: ^Level)
    if node(self, cell, dir).pawn != nil do return;;
 
    MovePawn(self.selected_cell.pawn, node(self, cell, dir));
+}
+
+
+endGameAnimation :: proc(self: ^Level, w: bool)
+{
+   a: i32 = GAME_WIDTH;
+   b: i32 = GAME_HEIGHT;
+   rect: sdl2.Rect = { 0 + GRID_PADDING*2, 0, a, b };
+   texture := w ? textures.w : textures.l;
+   AddAnimation(self, texture, rect, 128);
 }

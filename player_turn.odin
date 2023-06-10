@@ -1,5 +1,6 @@
 package main
 
+import "core:log"
 import "core:time"
 import "vendor:sdl2"
 
@@ -35,10 +36,10 @@ ProcessAction :: proc(self: ^Game) -> bool
 
          if !hasTarget(self.level.selected_cell) do return false;
 
-         shotsFired(self.level, self.level.selected_cell);
-         Reselect(self.level, &self.controls);
-         self.controls.drum.bullets[dir] = .Empty;
          doBang(self.level, self.level.player.cell);
+         shotsFired(self.level, self.level.selected_cell);
+         if !self.level.over do Reselect(self.level, &self.controls);
+         self.controls.drum.bullets[dir] = .Empty;
    
          time.sleep(self.tick * 3);
          if dir == .Left || dir == .UpperLeft || dir == .UpperRight {
@@ -104,24 +105,31 @@ shotsFired :: proc(self: ^Level, cell: ^Cell)
          AddAnimation(self, textures.death, cell.rect);
 
          self.enemies -= 1;
-         if self.enemies == 0 {
-            DestroyPawn(self.player);
-            self.over = true;
-         }
+         if self.enemies == 0 do prepExit(self);
+         // TODO: add victory animation
       
       case .Barrel: fallthrough; case .Bomb:
-         DestroyPawn(pawn);
          delete_key(&self.pawns, pawn);
+         DestroyPawn(pawn);
          AddAnimation(self, textures.explossion, cell.rect);
          blastRadius(self, cell);
 
       case .Player: 
          AddAnimation(self, textures.death, cell.rect);
-         DestroyPawn(pawn);
-         self.over = true;
+         // TODO: add loss animation
+         prepExit(self);
 
       case .Plant:
    }
+}
+
+
+prepExit :: proc(self: ^Level)
+{
+   if self.player == nil do return;
+   DestroyPawn(self.player);
+   self.player = nil;
+   self.over = true;
 }
 
 

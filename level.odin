@@ -40,12 +40,28 @@ InitLevel :: proc(self: ^Level)
 
    enemie_count := rand.int_max(4) + 4;
    static_count := rand.int_max(4) + 4;
-   
+
+   for i in 0 ..< 4 {
+      if i == 2 do continue;
+      for j in 0 ..< 7 {
+         pawn := CreatePawn(&self.grid.cells[i][j], .Bomb);
+         pawn.timer = 4;
+         self.pawns[pawn] = true;
+      }
+   }
+
+   for i in 0 ..< 7 {
+      if i & 1 != 0 do self.pawns[CreatePawn(&self.grid.cells[2][i], .Barrel)] = true;
+      else do self.pawns[CreatePawn(&self.grid.cells[2][i], .Axe)] = true;
+      
+   }
+      /*
    for i in 0 ..< enemie_count {
       for true {
          x, y : i32 = genRandomCords(self.cols, self.rows-1);
          if self.grid.cells[y][x].pawn == nil {
             pawn_type := PawnType(rand.int_max(4));
+            pawn_type = PawnType.Bombot;
             self.pawns[CreatePawn(&self.grid.cells[y][x], pawn_type)] = true;
             break;
          } 
@@ -63,13 +79,15 @@ InitLevel :: proc(self: ^Level)
       }
    }
 
-   self.enemies = enemie_count;
+   self.enemies = enemie_count;*/
+   self.enemies = 4;
 }
 
 
 ClearLevel :: proc(self: ^Level)
 {
    self.over = false;
+   deselectCell(self);
    for pawn in self.pawns {
       delete_key(&self.pawns, pawn);
       DestroyPawn(pawn);
@@ -162,6 +180,7 @@ MovePlayer :: proc(self: ^Level) -> bool
 
 deselectCell :: proc(self: ^Level)
 {
+   if self.selected_cell == nil do return;
    self.selected_cell.selected = false;
    self.selected_cell = nil;
 }

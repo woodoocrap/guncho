@@ -142,7 +142,7 @@ ProcessInput :: proc(self: ^Game, key: sdl2.Keycode)
       case .SPACE: fallthrough; case .RETURN: 
 
          if !ProcessAction(self) do return;
-         if self.level.over { EndGame(self); return; } 
+         if self.level.over { EndGame(self); return; }
          EnemyTurn(self.level);
          if self.level.over { EndGame(self); return; }
 

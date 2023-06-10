@@ -40,7 +40,7 @@ InitLevel :: proc(self: ^Level)
 
    enemie_count := rand.int_max(4) + 4;
    static_count := rand.int_max(4) + 4;
-
+   
    for i in 0 ..< enemie_count {
       for true {
          x, y : i32 = genRandomCords(self.cols, self.rows-1);
@@ -70,10 +70,11 @@ InitLevel :: proc(self: ^Level)
 ClearLevel :: proc(self: ^Level)
 {
    self.over = false;
-   for pawn in self.pawns { 
+   for pawn in self.pawns {
       delete_key(&self.pawns, pawn);
       DestroyPawn(pawn);
    }
+
 }
 
 
